@@ -14,7 +14,7 @@ M_ORDER = 1024;
 [x, Fs] = audioread('/Users/ykchen/Projects/ykchen/ntpu/DSP/HW4/input/up-is-down.wav');
 
 left = x(:,1);
-right = x(:,1);
+right = x(:,2);
 left_upsampled = upsample(left, L) .* L;
 right_upsampled = upsample(right, L) .* L;
 
