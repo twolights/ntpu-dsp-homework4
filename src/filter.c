@@ -52,7 +52,7 @@ void convolve(double* output,
     }
 }
 
-void convolve_by_frame(double* output, double* previous, double* buffer,
+void convolve_by_chunk(double* output, double* previous, double* buffer,
                        double* x, size_t x_len,
                        double* h, size_t h_len) {
     convolve(buffer, x, x_len, h, h_len);
