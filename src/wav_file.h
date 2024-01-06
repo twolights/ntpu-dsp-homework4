@@ -30,6 +30,11 @@ typedef struct WAV_FILE {
 } WAV_FILE;
 
 WAV_FILE* wav_open(const char* filename);
+void wav_read(WAV_FILE* wav_file, int16_t* buffer, int num_samples);
+
+WAV_FILE* wav_open_write(const char* filename, WAV_HEADER header);
+void wav_write(WAV_FILE* wav_file, int16_t** channel_buffers, int chunk_size);
+
 void wav_close(WAV_FILE* wav_file);
 
 #endif //WAV_FILE_H
