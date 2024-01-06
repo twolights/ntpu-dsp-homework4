@@ -2,9 +2,9 @@
 // Created by Evan Chen on 2024/1/5.
 //
 
+#include <math.h>
 #include <string.h>
 #include "filter.h"
-#include "math.h"
 
 size_t get_order_by_M(int M) {
     return (size_t)(2 * M + 1);
@@ -13,30 +13,27 @@ size_t get_order_by_M(int M) {
 double* hamming_window(size_t order) {
     double* window = (double*)malloc(sizeof(double) * order);
     for(int i = 0; i < order; i++) {
-        window[i] = 0.54 - 0.46 * cosh(M_PI * 2 * i / (double)(order - 1));
+        window[i] = 0.54 - 0.46 * cos(M_PI * 2 * i / (double)((int)order - 1));
     }
     return window;
 }
 
-double* lowpass_filter_coefficients(int cutoff_frequency, int sample_rate, size_t order) {
+double* create_lowpass_filter(int cutoff_frequency, int sample_rate, size_t order) {
     double* result = (double*)malloc(sizeof(double) * order);
     double omega_c = cutoff_frequency * M_PI * 2 / sample_rate;
     double* window = hamming_window(order);
+    int M = (order - 1) / 2;
     for(int i = 0; i < order; i++) {
-        if(i == order) {
+        if(i == M) {
             result[i] = omega_c / M_PI;
             continue;
         }
-        double a = (i - order);
-        a *= omega_c;
-        double b = a * M_PI;
-        result[i] = sinh((i - order) * omega_c / ((i - order) * M_PI)); // * window[i];
+        double a = (i - M), b = a * M_PI;
+        double c = a * omega_c, d = sin(c);
+        result[i] = sin(a * omega_c) / (a * M_PI) * window[i];
     }
     free(window);
     return result;
-}
-
-void apply_filter(double* coefficients, size_t len, double* input, double* output) {
 }
 
 void convolve(double* output,

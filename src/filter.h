@@ -1039,8 +1039,7 @@ double LCCDE_COEFFICIENTS[1025] = {
 
 size_t get_order_by_M(int M);
 double* hamming_window(size_t order);
-double* lowpass_filter_coefficients(int cutoff_frequency, int sample_rate, size_t order);
-void apply_filter(double* coefficients, size_t len, double* input, double* output);
+double* create_lowpass_filter(int cutoff_frequency, int sample_rate, size_t order);
 
 void convolve(double* output,
               double* x, size_t x_len,

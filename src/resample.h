@@ -6,8 +6,14 @@
 #define RESAMPLE_H
 
 #include <stdlib.h>
+#include "wav_file.h"
 
 int16_t* upsample(const int16_t* source, size_t len, int factor);
 int16_t* downsample(const int16_t* source, size_t len, int factor);
+
+void resample_wave_file(WAV_FILE* wav_file,
+                        int upsample_factor,
+                        int downsample_factor,
+                        int lpf_order_M);
 
 #endif //RESAMPLE_H
