@@ -47,7 +47,7 @@ void convolve(double* output,
         output[i] = 0;
         for(int j = 0; j < h_len; j++) {
             int h_reversed = h_len - j - 1, index = i - h_reversed;
-            if(index < 0) {
+            if(index < 0 || index >= x_len) {
                 continue;
             }
             output[i] += x[index] * h[h_reversed];
@@ -55,8 +55,13 @@ void convolve(double* output,
     }
 }
 
-void convolve_by_frame(double* output, double* previous,
+void convolve_by_frame(double* output, double* previous, double* buffer,
                        double* x, size_t x_len,
                        double* h, size_t h_len) {
-
+    convolve(buffer, x, x_len, h, h_len);
+    memcpy((void*)output, (void*)buffer, sizeof(double) * x_len);
+    for(int i = 0; i < h_len - 1; i++) {
+        output[i] += previous[i];
+        previous[i] = buffer[x_len + i];
+    }
 }
