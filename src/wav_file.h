@@ -10,7 +10,7 @@
 
 typedef struct WAV_HEADER {
     char chRIFF[4];                 // RIFF tag
-    int32_t  total_Len;             // Total length of the file (header + audio) = 36 + dataSize
+    int32_t total_len;              // Total length of the file (header + audio) = 36 + dataSize
     char chWAVE[4];                 // WAVE tag
     char chFMT[4];                  // fmt tag
     int32_t FMTLen;

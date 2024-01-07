@@ -5,9 +5,12 @@
 #define UPSAMPLE_FACTOR 80
 #define DOWNSAMPLE_FACTOR 441
 
+// #define INPUT_FILENAME "./input/up-is-down.wav"
+// #define INPUT_FILENAME "/Users/ykchen/Downloads/input.wav"
 #define INPUT_FILENAME "./input/up-is-down-trimmed.wav"
 
 void test();
+void wav_test();
 
 int main() {
     WAV_FILE* wav_file = wav_open(INPUT_FILENAME);
