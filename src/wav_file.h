@@ -8,6 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define WAV_HEADER_SIZE 44
+
 typedef struct WAV_HEADER {
     char chRIFF[4];                 // RIFF tag
     int32_t total_len;              // Total length of the file (header + audio) = 36 + dataSize
@@ -31,6 +33,7 @@ typedef struct WAV_FILE {
 
 WAV_FILE* wav_open(const char* filename);
 void wav_read(WAV_FILE* wav_file, int16_t* buffer, int num_samples);
+size_t wav_get_num_samples(WAV_FILE* wav_file);
 
 WAV_FILE* wav_open_write(const char* filename, WAV_HEADER header);
 void wav_write(WAV_FILE* wav_file, double** channel_buffers, int chunk_size);

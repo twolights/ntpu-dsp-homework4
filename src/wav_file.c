@@ -14,6 +14,14 @@ WAV_FILE* wav_open(const char* filename) {
     return wav_file;
 }
 
+size_t wav_get_num_samples(WAV_FILE* wav_file) {
+    size_t size, current = ftell(wav_file->fp);
+    fseek(wav_file->fp, 0, SEEK_END);
+    size = ftell(wav_file->fp) - WAV_HEADER_SIZE;
+    fseek(wav_file->fp, current, SEEK_SET);
+    return size / wav_file->header.bytes_per_sec;
+}
+
 void wav_read(WAV_FILE* wav_file, int16_t* buffer, int num_samples) {
     fread(buffer, sizeof(int16_t), num_samples, wav_file->fp);
 }

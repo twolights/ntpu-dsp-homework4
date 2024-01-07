@@ -3,7 +3,6 @@
 //
 
 #include <string.h>
-#include <math.h>
 #include "filter.h"
 #include "resample.h"
 #include "wav_file.h"
@@ -45,11 +44,19 @@ void free_channel_buffers(int num_channels, double **channel_buffers) {
     free(channel_buffers);
 }
 
+void prepare_output_header(double target_Fs, int num_channels, size_t num_samples, WAV_HEADER *header) {
+    header->sample_hz = target_Fs;
+    header->bytes_per_sec = target_Fs * header->sample_bits / 8 * num_channels;
+    header->DATALen = num_samples * header->bytes_per_sec;
+    header->total_len = header->DATALen + 36;
+    strncpy(header->chDATA, "data", 4);
+}
+
 void resample_wave_file(WAV_FILE* wav_file,
                         int upsample_factor,
                         int downsample_factor,
                         int lpf_order_M) {
-    int i, j, channel;
+    int i, channel;
     size_t order = get_order_by_M(lpf_order_M);
     double source_Fs = wav_file->header.sample_hz,
         lpf_Fs = source_Fs * upsample_factor,
@@ -59,31 +66,26 @@ void resample_wave_file(WAV_FILE* wav_file,
         upsampled_chuck_size = chunk_size * upsample_factor,
         downsampled_chunk_size = upsampled_chuck_size / downsample_factor;
     double* lpf = create_lowpass_filter(target_Fs / 2, lpf_Fs, order);
-    // double* lpf = create_lowpass_filter(target_Fs / 2, lpf_Fs, order);
     double** channel_buffers = create_channel_buffers(num_channels, chunk_size);
     int num_to_read = num_channels * chunk_size;
     int16_t* buffer = (int16_t*)malloc(sizeof(int16_t) * num_to_read);
-    WAV_HEADER header = wav_file->header;   // TODO change sampling rate here
+    size_t num_samples = wav_get_num_samples(wav_file);
+    WAV_HEADER header = wav_file->header;
     WAV_FILE* output_file;
     int count = 0;
     double* convolution_buffer = (double*)malloc(sizeof(double) * (chunk_size * upsample_factor + order - 1));
     double** previous_buffers = (double**)malloc(sizeof(double*) * num_channels);
-    // double* previous_buffer = (double*)malloc(sizeof(double) * (order - 1));
     double** convolution_output = (double**)malloc(sizeof(double*) * num_channels);
     double** downsampled_output = (double**)malloc(sizeof(double*) * num_channels);
     for(i = 0; i < num_channels; i++) {
-        convolution_output[i] = (double*)malloc(sizeof(double) * chunk_size);
+        convolution_output[i] = (double*)malloc(sizeof(double) * upsampled_chuck_size);
         previous_buffers[i] = (double*)malloc(sizeof(double) * (order - 1));
         memset(previous_buffers[i], 0, sizeof(double) * (order - 1));
     }
 
-    header.sample_hz = target_Fs;
-    header.bytes_per_sec = target_Fs * header.sample_bits / 8 * num_channels;
-    header.DATALen = 320000;
-    header.total_len = header.DATALen + 36;
-    strncpy(header.chDATA, "data" ,4);
+    prepare_output_header(target_Fs, num_channels, num_samples, &header);
     output_file = wav_open_write("output.wav", header);
-    while(!feof(wav_file->fp) && count < 10) {
+    while(!feof(wav_file->fp)) {
         count++;
         wav_read(wav_file, buffer, num_to_read);
         for(i = 0; i < num_to_read; i++) {
@@ -95,7 +97,6 @@ void resample_wave_file(WAV_FILE* wav_file,
             convolve_by_chunk(convolution_output[i], previous_buffers[i], convolution_buffer,
                               upsampled, upsampled_chuck_size,
                               lpf, order);
-            // double* downsampled = downsample(upsampled, upsampled_chuck_size, downsample_factor);
             double* downsampled = downsample(convolution_output[i], upsampled_chuck_size, downsample_factor);
             free(upsampled);  // TODO reuse upsample & downsample buffer
             downsampled_output[i] = downsampled;
