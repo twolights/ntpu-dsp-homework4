@@ -6,37 +6,37 @@
 #include "resample.h"
 #include "wav_file.h"
 
-int16_t** create_channel_buffers(int num_channels, int chunk_size);
+double** create_channel_buffers(int num_channels, int chunk_size);
 
-void free_channel_buffers(int num_channels, int16_t **channel_buffers);
+void free_channel_buffers(int num_channels, double **channel_buffers);
 
-int16_t* upsample(const int16_t* source, size_t len, int factor) {
+double* upsample(const double* source, size_t len, int factor) {
     // TODO might wanna reuse the result array
-    int16_t* result = (int16_t*)malloc(sizeof(int16_t) * len * factor);
+    double* result = (double*)malloc(sizeof(double) * len * factor);
     for(int i = 0; i < len; i++) {
         result[i * factor] = source[i];
     }
     return result;
 }
 
-int16_t* downsample(const int16_t* source, size_t len, int factor) {
+double* downsample(const double* source, size_t len, int factor) {
     // TODO might wanna reuse the result array
-    int16_t* result = (int16_t*)malloc(sizeof(int16_t) * len / factor);
+    double* result = (double*)malloc(sizeof(double) * len / factor);
     for(int i = 0; i < len / factor; i++) {
         result[i] = source[i * factor];
     }
     return result;
 }
 
-int16_t** create_channel_buffers(int num_channels, int chunk_size) {
-    int16_t** channel_buffers = (int16_t**)malloc(sizeof(int16_t*) * num_channels * chunk_size);
+double** create_channel_buffers(int num_channels, int chunk_size) {
+    double** channel_buffers = (double**)malloc(sizeof(double*) * num_channels * chunk_size);
     for(int i = 0; i < num_channels; i++) {
-        channel_buffers[i] = (int16_t*)malloc(sizeof(int16_t) * chunk_size);
+        channel_buffers[i] = (double*)malloc(sizeof(double) * chunk_size);
     }
     return channel_buffers;
 }
 
-void free_channel_buffers(int num_channels, int16_t **channel_buffers) {
+void free_channel_buffers(int num_channels, double **channel_buffers) {
     for(int i = 0; i < num_channels; i++) {
         free(channel_buffers[i]);
     }
@@ -55,24 +55,26 @@ void resample_wave_file(WAV_FILE* wav_file,
     int num_channels = wav_file->header.channels;
     int chunk_size = (int)source_Fs;
     double* lpf = create_lowpass_filter(target_Fs / 2, lpf_Fs, order);
-    int16_t** channel_buffers = create_channel_buffers(num_channels, chunk_size);
+    // double* lpf = create_lowpass_filter(target_Fs / 2, lpf_Fs, order);
+    double** channel_buffers = create_channel_buffers(num_channels, chunk_size);
     int num_to_read = num_channels * chunk_size;
     int16_t* buffer = (int16_t*)malloc(sizeof(int16_t) * num_to_read);
     WAV_HEADER header = wav_file->header;   // TODO change sampling rate here
     WAV_FILE* output_file = wav_open_write("output.wav", header);
+    int count = 0;
 
     while(!feof(wav_file->fp)) {
+        count++;
         wav_read(wav_file, buffer, num_to_read);
         for(i = 0; i < num_to_read; i++) {
             channel = i % num_channels;
             channel_buffers[channel][i / num_channels] = buffer[i];
         }
-        /*
         for(i = 0; i < num_channels; i++) {
             // TODO upsample, filter, downsample
-            uint16_t* upsampled = upsample(channel_buffers[i], chunk_size, upsample_factor);
+            double* upsampled = upsample(channel_buffers[i], chunk_size, upsample_factor);
+            printf("count = %d\n", count);
         }
-        */
         wav_write(output_file, channel_buffers, chunk_size);
     }
 

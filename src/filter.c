@@ -23,13 +23,13 @@ double* create_lowpass_filter(int cutoff_frequency, int sample_rate, size_t orde
     double omega_c = cutoff_frequency * M_PI * 2 / sample_rate;
     double* window = hamming_window(order);
     int M = (order - 1) / 2;
+    double a;
     for(int i = 0; i < order; i++) {
         if(i == M) {
             result[i] = omega_c / M_PI;
             continue;
         }
-        double a = (i - M), b = a * M_PI;
-        double c = a * omega_c, d = sin(c);
+        a = (i - M);
         result[i] = sin(a * omega_c) / (a * M_PI) * window[i];
     }
     free(window);

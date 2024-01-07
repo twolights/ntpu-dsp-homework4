@@ -1,12 +1,7 @@
-#include <stdio.h>
 #include "wav_file.h"
 #include "resample.h"
-#include "filter.h"
 
 #define ORDER_M 512
-#define SOURCE_SAMPLING_RATE 44100
-#define TARGET_SAMPLING_RATE 8000
-#define FILTER_CUTOFF_FREQUENCY (TARGET_SAMPLING_RATE / 2)
 #define UPSAMPLE_FACTOR 80
 #define DOWNSAMPLE_FACTOR 441
 
@@ -22,4 +17,5 @@ int main() {
                        ORDER_M);
     wav_close(wav_file);
     // test();
+    // wav_test();
 }

@@ -30,11 +30,14 @@ WAV_FILE* wav_open_write(const char* filename, WAV_HEADER header) {
     return wav_file;
 }
 
-void wav_write(WAV_FILE* wav_file, int16_t** channel_buffers, int chunk_size) {
+void wav_write(WAV_FILE* wav_file, double** channel_buffers, int chunk_size) {
     int num_channels = wav_file->header.channels;
-    for(int i = 0; i < chunk_size; i++) {
-        for(int channel = 0; channel < num_channels; channel++) {
-            fwrite(&channel_buffers[channel][i], sizeof(int16_t), 1, wav_file->fp);
+    int i, channel;
+    int16_t buffer;
+    for(i = 0; i < chunk_size; i++) {
+        for(channel = 0; channel < num_channels; channel++) {
+            buffer = (int16_t)channel_buffers[channel][i];
+            fwrite(&buffer, sizeof(int16_t), 1, wav_file->fp);
         }
     }
 }
