@@ -1,6 +1,6 @@
 # NTPU Fall 2023 DSP Homework #4
 
-Source code is hosted at https://github.com/twolights/ntpu-dsp-homework4
+* Source code is hosted at https://github.com/twolights/ntpu-dsp-homework4
 
 # Prerequisites
 
@@ -14,7 +14,7 @@ Source code is hosted at https://github.com/twolights/ntpu-dsp-homework4
 1. Python 3.8+ (only tested on 3.8.17 though)
 2. NumPy
 3. matplotlib
-4. virutalenv
+4. virtualenv
 5. pip
 
 # How to Run
@@ -46,6 +46,11 @@ Source code is hosted at https://github.com/twolights/ntpu-dsp-homework4
    # ./cmake-build-debug/HW4 ./input/input.wav ./output/output.wav
    ```
 
+
+### Low-Pass Filter Coefficients
+
+* After running the program, the coefficients will be saved in `./output/lpf.csv`
+
 ## Plotting Impulse Response
 
 1. Create a virtual environment with
@@ -63,3 +68,5 @@ Source code is hosted at https://github.com/twolights/ntpu-dsp-homework4
     ```bash
     # python main.py
     ```
+
+4. The image will be saved to `./output/ir-and-magnitude.png`
