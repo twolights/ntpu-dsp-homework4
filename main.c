@@ -2,7 +2,7 @@
 #include "resample.h"
 #include "filter.h"
 
-#define ORDER_M 1024
+#define ORDER_M 512
 #define UPSAMPLE_FACTOR 80
 #define DOWNSAMPLE_FACTOR 441
 #define SOURCE_SAMPLE_RATE 44100
