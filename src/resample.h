@@ -8,8 +8,8 @@
 #include <stdlib.h>
 #include "wav_file.h"
 
-double* upsample(const double* source, size_t len, int factor);
-double* downsample(const double* source, size_t len, int factor);
+void upsample(const double* source, size_t len, int factor, double* result);
+void downsample(const double* source, size_t len, int factor, double* result);
 
 void resample_wave_file(WAV_FILE* wav_file,
                         int upsample_factor,
