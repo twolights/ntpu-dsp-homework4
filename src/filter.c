@@ -4,6 +4,7 @@
 
 #include <math.h>
 #include <string.h>
+#include <stdio.h>
 #include "filter.h"
 
 size_t get_order_by_M(int M) {
@@ -34,6 +35,14 @@ double* create_lowpass_filter(int cutoff_frequency, int sample_rate, size_t orde
     }
     free(window);
     return result;
+}
+
+void save_lowpass_filter_(double* filter, size_t order, const char* filename) {
+    FILE* fp = fopen(filename, "w");
+    for(int i = 0; i < order; i++) {
+        fprintf(fp, "%f\n", filter[i]);
+    }
+    fclose(fp);
 }
 
 void convolve(double* output,

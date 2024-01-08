@@ -1,25 +1,35 @@
 #include "wav_file.h"
 #include "resample.h"
+#include "filter.h"
 
-#define ORDER_M 128
+#define ORDER_M 1024
 #define UPSAMPLE_FACTOR 80
 #define DOWNSAMPLE_FACTOR 441
+#define SOURCE_SAMPLE_RATE 44100
+#define LPF_COEFFICIENTS_OUTPUT_FILENAME "./output/lpf.csv"
 
-// #define INPUT_FILENAME "./input/up-is-down.wav"
-// #define INPUT_FILENAME "/Users/ykchen/Downloads/input.wav"
-#define INPUT_FILENAME "./input/up-is-down-trimmed.wav"
-// #define INPUT_FILENAME "./input/up-is-down-10-sec.wav"
+void save_lpf() {
+    int target_Fs = SOURCE_SAMPLE_RATE * UPSAMPLE_FACTOR / DOWNSAMPLE_FACTOR,
+            lpf_Fs = SOURCE_SAMPLE_RATE * UPSAMPLE_FACTOR;
+    int order = get_order_by_M(ORDER_M);
+    double* lpf = create_lowpass_filter(target_Fs / 2, lpf_Fs, order);
+    save_lowpass_filter_(lpf, order, LPF_COEFFICIENTS_OUTPUT_FILENAME);
+    free(lpf);
+}
 
-void test();
-void wav_test();
-
-int main() {
-    WAV_FILE* wav_file = wav_open(INPUT_FILENAME);
+int main(int argc, const char* argv[]) {
+    if(argc < 1) {
+        printf("Usage: %s <input.wav>\n", argv[0]);
+        return 1;
+    }
+    const char* filename = argv[1];
+    printf("Processing %s...\n", filename);
+    WAV_FILE* wav_file = wav_open(filename);
     resample_wave_file(wav_file,
                        UPSAMPLE_FACTOR,
                        DOWNSAMPLE_FACTOR,
                        ORDER_M);
     wav_close(wav_file);
-    // test();
-    // wav_test();
+    save_lpf();
+    return 0;
 }
