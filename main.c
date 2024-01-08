@@ -18,14 +18,15 @@ void save_lpf() {
 }
 
 int main(int argc, const char* argv[]) {
-    if(argc < 1) {
-        printf("Usage: %s <input.wav>\n", argv[0]);
+    if(argc < 2) {
+        printf("Usage: %s <input.wav> <output.wav>\n", argv[0]);
         return 1;
     }
     const char* filename = argv[1];
     printf("Processing %s...\n", filename);
     WAV_FILE* wav_file = wav_open(filename);
     resample_wave_file(wav_file,
+                       argv[2],
                        UPSAMPLE_FACTOR,
                        DOWNSAMPLE_FACTOR,
                        ORDER_M);

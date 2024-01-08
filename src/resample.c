@@ -119,6 +119,7 @@ void perform_filter(WAV_FILE* wav_file, double source_Fs,
 }
 
 void resample_wave_file(WAV_FILE* wav_file,
+                        const char* output_filename,
                         int upsample_factor,
                         int downsample_factor,
                         int lpf_order_M) {
@@ -132,7 +133,7 @@ void resample_wave_file(WAV_FILE* wav_file,
     WAV_HEADER output_header = wav_file->header;
     prepare_output_header(target_Fs, num_channels, num_samples, &output_header);
     perform_filter(wav_file, source_Fs,
-                   output_header, "./output/output.wav",
+                   output_header, output_filename,
                    lpf, order,
                    upsample_factor, downsample_factor);
 }

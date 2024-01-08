@@ -12,6 +12,7 @@ void upsample(const double* source, size_t len, int factor, double* result);
 void downsample(const double* source, size_t len, int factor, double* result);
 
 void resample_wave_file(WAV_FILE* wav_file,
+                        const char* output_filename,
                         int upsample_factor,
                         int downsample_factor,
                         int lpf_order_M);
