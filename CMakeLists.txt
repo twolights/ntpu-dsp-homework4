@@ -9,7 +9,9 @@ set(signal_processing_sources
         src/filter.c
         src/filter.h
         src/resample.c
-        src/resample.h)
+        src/resample.h
+        src/fft.h
+        src/fft.c)
 
 add_library(signal_processing ${signal_processing_sources})
 
