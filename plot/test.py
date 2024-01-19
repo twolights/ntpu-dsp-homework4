@@ -51,15 +51,45 @@ def next_power_of_2(x):
 
 def resample_fft(data):
     left, right = data[:, 0], data[:, 1]
+    output = np.zeros(int(len(left) * UPSAMPLE_FACTOR / DOWNSAMPLE_FACTOR))
+    num_frames = math.ceil(len(left) / DOWNSAMPLE_FACTOR)
+
+    nfft = next_power_of_2(DOWNSAMPLE_FACTOR * UPSAMPLE_FACTOR)
     lpf_coefficients = scipy.signal.firwin(ORDER, CUTOFF, window='hamming', fs=FS * UPSAMPLE_FACTOR)
-    nfft = next_power_of_2(len(left) * UPSAMPLE_FACTOR)
-    left_upsampled = upsample(left, UPSAMPLE_FACTOR)
-    left_ffted = scipy.fft.fft(left_upsampled, nfft)
-    lpf_ffted = scipy.fft.fft(lpf_coefficients, nfft)
-    result = left_ffted * lpf_ffted
-    output = scipy.fft.ifft(result)
-    left_downsampled = downsample(output, DOWNSAMPLE_FACTOR)
-    return np.real(left_downsampled)
+    lpf_padded = np.pad(lpf_coefficients, (0, nfft - len(lpf_coefficients)))
+    lpf_padded_ffted = scipy.fft.fft(lpf_padded)
+    # lpf_padded = np.pad(lpf_coefficients, (0, N - len(lpf_coefficients)))
+
+    temp_buffer = np.zeros(nfft, dtype=np.complex64)
+    
+    for i in range(0, num_frames):
+        frame = left[i * DOWNSAMPLE_FACTOR:(i + 1) * DOWNSAMPLE_FACTOR]
+        frame_upsampled = upsample(frame, UPSAMPLE_FACTOR)
+        frame_padded = np.pad(frame_upsampled, (0, nfft - len(frame_upsampled)))
+        # frame_padded = np.pad(frame, (0, N - len(frame)))
+        frame_ffted = scipy.fft.fft(frame_padded)
+        result = frame_ffted * lpf_padded_ffted
+        frame_output = scipy.fft.ifft(result)
+        frame_downsampled = downsample(frame_output, DOWNSAMPLE_FACTOR)
+        frame_downsampled += temp_buffer[:frame_downsampled.shape[0]]
+        temp_buffer[:frame_downsampled.shape[0]] = 0
+        np.roll(temp_buffer, -1 * frame_downsampled.shape[0])
+        # frame_downsampled[:UPSAMPLE_FACTOR] += temp_buffer[:UPSAMPLE_FACTOR]
+        saved_length = frame_downsampled.shape[0] - UPSAMPLE_FACTOR
+        temp_buffer[:saved_length] = frame_downsampled[UPSAMPLE_FACTOR:]
+        if ((i + 1) * UPSAMPLE_FACTOR) > len(output):
+            output[-1 * frame_downsampled.shape[0]:] = np.real(frame_downsampled)
+        else:
+            output[i * UPSAMPLE_FACTOR:(i + 1) * UPSAMPLE_FACTOR] = np.real(frame_downsampled[:UPSAMPLE_FACTOR])
+        pass
+    # nfft = next_power_of_2(len(left) * UPSAMPLE_FACTOR)
+    # left_upsampled = upsample(left, UPSAMPLE_FACTOR)
+    # left_ffted = scipy.fft.fft(left_upsampled, nfft)
+    # lpf_ffted = scipy.fft.fft(lpf_coefficients, nfft)
+    # result = left_ffted * lpf_ffted
+    # frame_output = scipy.fft.ifft(result)
+    # left_downsampled = downsample(frame_output, DOWNSAMPLE_FACTOR)
+    return output
 
 
 def main():
