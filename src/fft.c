@@ -8,6 +8,22 @@
 #include "fft.h"
 
 
+complex double* create_fft_buffer(int n) {
+    return (complex double*)malloc(sizeof(complex double) * n);
+}
+
+void fill_fft_buffer_int16(complex double* buffer, const int16_t* data, int size) {
+    for(int i = 0; i < size; i++) {
+        buffer[i] = data[i];
+    }
+}
+
+void fill_fft_buffer_double(complex double* buffer, const double* data, int size) {
+    for(int i = 0; i < size; i++) {
+        buffer[i] = data[i];
+    }
+}
+
 void fft(complex double* a, int n) {
     int i;
     complex double t;
@@ -15,8 +31,8 @@ void fft(complex double* a, int n) {
         return;
     }
 
-    complex double* a0 = (complex double*)malloc(sizeof(complex double) * n / 2);
-    complex double* a1 = (complex double*)malloc(sizeof(complex double) * n / 2);
+    complex double* a0 = create_fft_buffer(n / 2);
+    complex double* a1 = create_fft_buffer(n / 2);
 
     for(i = 0; i < (n / 2); i++) {
         a0[i] = a[i * 2];
@@ -43,8 +59,8 @@ void ifft(complex double* a, int n) {
         return;
     }
 
-    complex double* a0 = (complex double*)malloc(sizeof(complex double) * n / 2);
-    complex double* a1 = (complex double*)malloc(sizeof(complex double) * n / 2);
+    complex double* a0 = create_fft_buffer(n / 2);
+    complex double* a1 = create_fft_buffer(n / 2);
 
     for(i = 0; i < n / 2; i++) {
         a0[i] = a[i * 2];
