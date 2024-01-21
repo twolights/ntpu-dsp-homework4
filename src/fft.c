@@ -31,8 +31,10 @@ void fft(complex double* a, int n) {
         return;
     }
 
-    complex double* a0 = create_fft_buffer(n / 2);
-    complex double* a1 = create_fft_buffer(n / 2);
+    complex double a0[4096];
+    complex double a1[4096];
+    // complex double* a0 = create_fft_buffer(n / 2);
+    // complex double* a1 = create_fft_buffer(n / 2);
 
     for(i = 0; i < (n / 2); i++) {
         a0[i] = a[i * 2];
@@ -48,8 +50,8 @@ void fft(complex double* a, int n) {
         a[i + n / 2] = a0[i] - t;
     }
 
-    free(a0);
-    free(a1);
+    // free(a0);
+    // free(a1);
 }
 
 void ifft(complex double* a, int n) {
@@ -59,8 +61,10 @@ void ifft(complex double* a, int n) {
         return;
     }
 
-    complex double* a0 = create_fft_buffer(n / 2);
-    complex double* a1 = create_fft_buffer(n / 2);
+    complex double a0[4096];
+    complex double a1[4096];
+    // complex double* a0 = create_fft_buffer(n / 2);
+    // complex double* a1 = create_fft_buffer(n / 2);
 
     for(i = 0; i < n / 2; i++) {
         a0[i] = a[i * 2];
@@ -80,6 +84,6 @@ void ifft(complex double* a, int n) {
         a[i] /= 2;
     }
 
-    free(a0);
-    free(a1);
+    // free(a0);
+    // free(a1);
 }

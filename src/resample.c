@@ -100,7 +100,6 @@ void perform_chunked_fft(double* frame_buffer, int frame_size,
         ifft(chunk, n_fft);
         start = i * downsample_factor;
 
-        // TODO take num_to_take samples from chunk
         for(j = 0; j < previous_buffer_size; j++) {
             chunk[j] += previous_buffer[j];
         }
@@ -109,7 +108,6 @@ void perform_chunked_fft(double* frame_buffer, int frame_size,
             previous_buffer[j] = chunk[downsample_factor + j];
         }
 
-        // TODO write output to output_buffer
         for(j = 0; j < num_to_take; j++) {
             output_buffer[start + j] += creal(chunk[j]);
         }
@@ -144,6 +142,9 @@ void perform_fft_filter(WAV_FILE* wav_file, double source_Fs,
     WAV_FILE* output_file = wav_open_write(output_filename, header);
 
     fill_fft_buffer_double(lpf_ffted, lpf, lpf_order);
+    for(i = 0; i < lpf_order; i++) {
+        lpf[i] = lpf[i] * upsample_factor;
+    }
     fft(lpf_ffted, FFT_SIZE);
 
     while(!feof(wav_file->fp)) {
@@ -154,8 +155,6 @@ void perform_fft_filter(WAV_FILE* wav_file, double source_Fs,
             frame_buffer[channel][i / num_channels] = input_buffer[i];
         }
         for(i = 0; i < num_channels; i++) {
-            // upsample(frame_buffer[i], frame_size, upsample_factor, upsampled);
-            // downsample(convolution_output, upsampled_chuck_size, downsample_factor, downsampled_output[i]);
             perform_chunked_fft(frame_buffer[i], frame_size,
                                 lpf_ffted, lpf_order,
                                 upsampled, upsample_factor,
@@ -173,7 +172,6 @@ void perform_fft_filter(WAV_FILE* wav_file, double source_Fs,
     free(input_buffer);
     free(chunk);
     free_frame_buffers(num_channels, frame_buffer);
-    free(previous_buffers);
     free(upsampled);
     free_downsampled_output(num_channels, downsampled_output);
     free_previous_buffers(num_channels, previous_buffers);
