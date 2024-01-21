@@ -32,7 +32,7 @@ double** prepare_frame_buffer(int num_channels, int chunk_size) {
     return channel_buffers;
 }
 
-void free_channel_buffers(int num_channels, double** channel_buffers) {
+void free_frame_buffers(int num_channels, double** channel_buffers) {
     for(int i = 0; i < num_channels; i++) {
         free(channel_buffers[i]);
     }
@@ -62,27 +62,59 @@ void free_downsampled_output(int num_channels, double** downsampled_output) {
     free(downsampled_output);
 }
 
+complex double** prepare_previous_buffers(int num_channels, size_t previous_buffer_size) {
+    complex double** result = (complex double**)malloc(sizeof(complex double*) * num_channels);
+    for(int i = 0; i < num_channels; i++) {
+        result[i] = (complex double*)malloc(sizeof(complex double) * previous_buffer_size);
+        memset(result[i], 0, sizeof(complex double) * previous_buffer_size);
+    }
+    return result;
+}
+
+void free_previous_buffers(int num_channels, complex double** previous_buffers) {
+    for(int i = 0; i < num_channels; i++) {
+        free(previous_buffers[i]);
+    }
+    free(previous_buffers);
+}
+
 void perform_chunked_fft(double* frame_buffer, int frame_size,
-                         const complex double* lpf_ffted,
+                         const complex double* lpf_ffted, int lpf_order,
                          double* upsampled, int upsample_factor,
                          double* downsampled, int downsample_factor,
-                         complex double* buffer,
-                         complex double* previous_buffer, int n_fft) {
-    int upsampled_chuck_size = frame_size * upsample_factor;
-    int i;
+                         complex double* chunk, int upsampled_chuck_size, int downsampled_chunk_size,
+                         complex double* previous_buffer, int previous_buffer_size,
+                         int n_fft,
+                         double* output_buffer) {
+    int i, j, start;
+    int num_to_take = downsample_factor + lpf_order - 1;
+    memset(output_buffer, 0, sizeof(double) * upsample_factor);
+
     upsample(frame_buffer, frame_size, upsample_factor, upsampled);
-    fill_fft_buffer_double(convolution_buffer, upsampled, upsampled_chuck_size);
-    fft(convolution_buffer, FFT_SIZE);
-    for(i = 0; i < FFT_SIZE; i++) {
-        convolution_buffer[i] *= lpf_ffted[i];
+    for(i = 0; i < upsample_factor; i++) {
+        fill_fft_buffer_double(chunk, &upsampled[i * downsample_factor], downsample_factor);
+        fft(chunk, n_fft);
+        for(j = 0; j < n_fft; j++) {
+            chunk[j] *= lpf_ffted[j];
+        }
+        ifft(chunk, n_fft);
+        start = i * downsample_factor;
+
+        // TODO take num_to_take samples from chunk
+        for(j = 0; j < previous_buffer_size; j++) {
+            chunk[j] += previous_buffer[j];
+        }
+
+        for(j = 0; j < previous_buffer_size; j++) {
+            previous_buffer[j] = chunk[downsample_factor + j];
+        }
+
+        // TODO write output to output_buffer
+        for(j = 0; j < num_to_take; j++) {
+            output_buffer[start + j] += creal(chunk[j]);
+        }
     }
-    ifft(convolution_buffer, FFT_SIZE);
-    for(i = 0; i < upsampled_chuck_size; i++) {
-        convolution_output[i] = convolution_buffer[i] + previous_buffer[i];
-        previous_buffer[i] = convolution_buffer[i + upsampled_chuck_size];
-    }
-    free(upsampled);
-    free(convolution_output);
+    downsample(output_buffer, upsampled_chuck_size, downsample_factor, downsampled);
 }
 
 void perform_fft_filter(WAV_FILE* wav_file, double source_Fs,
@@ -94,16 +126,16 @@ void perform_fft_filter(WAV_FILE* wav_file, double source_Fs,
     int num_channels = wav_file->header.channels;
     int frame_size = (int)downsample_factor,
             upsampled_chuck_size = frame_size * upsample_factor,
-            downsampled_chunk_size = upsampled_chuck_size / downsample_factor;
+            downsampled_chunk_size = upsampled_chuck_size / downsample_factor,
+            previous_buffer_size = downsample_factor + lpf_order - 1 - downsample_factor;
     int num_to_read = num_channels * frame_size;
     complex double* lpf_ffted = create_fft_buffer(FFT_SIZE);
 
     int16_t* input_buffer = (int16_t*)malloc(sizeof(int16_t) * num_to_read);
-    complex double* buffer = create_fft_buffer(FFT_SIZE);
-    double* convolution_output = (double*)malloc(sizeof(double) * upsampled_chuck_size);
-    double** frame_buffer = prepare_frame_buffer(num_channels, frame_size);
-    double* convolution_buffer = (double*)malloc(sizeof(double) * (frame_size * upsample_factor + lpf_order - 1));
-    double** previous_buffers = (double**)malloc(sizeof(double*) * num_channels);
+    complex double** previous_buffers = prepare_previous_buffers(num_channels, previous_buffer_size);
+    complex double* chunk = create_fft_buffer(FFT_SIZE);
+    double* output_buffer = (double*)malloc(sizeof(double) * upsample_factor);
+    double** frame_buffer = prepare_frame_buffer(num_channels, frame_size);     // TODO
     double* upsampled = (double*)malloc(sizeof(double) * frame_size * upsample_factor);;
     double** downsampled_output = prepare_downsampled_output(num_channels,
                                                              upsampled_chuck_size,
@@ -114,11 +146,6 @@ void perform_fft_filter(WAV_FILE* wav_file, double source_Fs,
     fill_fft_buffer_double(lpf_ffted, lpf, lpf_order);
     fft(lpf_ffted, FFT_SIZE);
 
-    for(i = 0; i < num_channels; i++) {
-        previous_buffers[i] = (double*)malloc(sizeof(double) * (lpf_order - 1));
-        memset(previous_buffers[i], 0, sizeof(double) * (lpf_order - 1));
-    }
-
     while(!feof(wav_file->fp)) {
         count++;
         wav_read(wav_file, input_buffer, num_to_read);
@@ -127,24 +154,29 @@ void perform_fft_filter(WAV_FILE* wav_file, double source_Fs,
             frame_buffer[channel][i / num_channels] = input_buffer[i];
         }
         for(i = 0; i < num_channels; i++) {
-            upsample(frame_buffer[i], frame_size, upsample_factor, upsampled);
-            downsample(convolution_output, upsampled_chuck_size, downsample_factor, downsampled_output[i]);
+            // upsample(frame_buffer[i], frame_size, upsample_factor, upsampled);
+            // downsample(convolution_output, upsampled_chuck_size, downsample_factor, downsampled_output[i]);
+            perform_chunked_fft(frame_buffer[i], frame_size,
+                                lpf_ffted, lpf_order,
+                                upsampled, upsample_factor,
+                                downsampled_output[i], downsample_factor,
+                                chunk, upsampled_chuck_size, downsampled_chunk_size,
+                                previous_buffers[i], previous_buffer_size,
+                                FFT_SIZE,
+                                output_buffer);
         }
         wav_write(output_file, downsampled_output, downsampled_chunk_size);
         printf("Iteration %d complete\n", count);
     }
     wav_close(output_file);
 
-    for(i = 0; i < num_channels; i++) {
-        free(previous_buffers[i]);
-    }
     free(input_buffer);
-    free(convolution_output);
-    free_channel_buffers(num_channels, frame_buffer);
-    free(convolution_buffer);
+    free(chunk);
+    free_frame_buffers(num_channels, frame_buffer);
     free(previous_buffers);
     free(upsampled);
     free_downsampled_output(num_channels, downsampled_output);
+    free_previous_buffers(num_channels, previous_buffers);
     free(lpf_ffted);
 }
 
