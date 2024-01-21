@@ -58,46 +58,43 @@ def resample_fft(data):
     # nfft = next_power_of_2(DOWNSAMPLE_FACTOR * UPSAMPLE_FACTOR)
     lpf_coefficients = scipy.signal.firwin(ORDER, CUTOFF, window='hamming', fs=FS * UPSAMPLE_FACTOR)
     lpf_padded = np.pad(lpf_coefficients, (0, nfft - len(lpf_coefficients)))
-    lpf_padded_ffted = scipy.fft.fft(lpf_padded)
+    lpf_ffted = scipy.fft.fft(lpf_padded)
     # lpf_padded = np.pad(lpf_coefficients, (0, N - len(lpf_coefficients)))
 
+    num_take = DOWNSAMPLE_FACTOR + ORDER - 1
+    num_buffer_take = nfft - num_take
     temp_buffer = np.zeros(nfft, dtype=np.complex64)
-    segment_buffer = np.zeros(nfft, dtype=np.complex64)
     output_size = math.floor(DOWNSAMPLE_FACTOR / UPSAMPLE_FACTOR) * UPSAMPLE_FACTOR
     size = int(output_size / UPSAMPLE_FACTOR)
 
     for i in range(0, num_frames):
         frame = left[i * DOWNSAMPLE_FACTOR:(i + 1) * DOWNSAMPLE_FACTOR]
         frame_upsampled = upsample(frame, UPSAMPLE_FACTOR)
+        frame_output = np.zeros_like(frame_upsampled)
         for j in range(0, UPSAMPLE_FACTOR):
-            if (i * UPSAMPLE_FACTOR + j) > len(output):
-                break
-            chunk = frame_upsampled[j * DOWNSAMPLE_FACTOR:(j + 1) * DOWNSAMPLE_FACTOR]
-            if len(chunk) < DOWNSAMPLE_FACTOR:
-                chunk = np.pad(chunk, (0, DOWNSAMPLE_FACTOR - len(chunk)))
-            segment_buffer[:DOWNSAMPLE_FACTOR] = chunk
-            # Already padded
-            segment_ffted = scipy.fft.fft(segment_buffer)
-            result = segment_ffted * lpf_padded_ffted
-            segment_output = scipy.fft.ifft(result)
-            segment_output[:output_size] += temp_buffer[:output_size]
-            np.roll(temp_buffer, -1 * output_size)
-            extra_size = (nfft - output_size)
-            temp_buffer[:extra_size] += segment_output[output_size:]
-            segment_downsampled = downsample(segment_output, DOWNSAMPLE_FACTOR)
-            index = i * size + j
-            if ((index + 1) * size) > len(output):
-                output[index * size:] = np.real(segment_downsampled[:len(output) - index * size + index])
+            # chunk zero padding
+            chunk = np.zeros(nfft, dtype=np.complex64)
+            taken = frame_upsampled[j * DOWNSAMPLE_FACTOR:(j + 1) * DOWNSAMPLE_FACTOR]
+            chunk_size = min(DOWNSAMPLE_FACTOR, taken.shape[0])
+            chunk[:chunk_size] = taken
+            chunk_ffted = scipy.fft.fft(chunk)
+            chunk_lpfed = chunk_ffted * lpf_ffted
+            chunk_iffted = scipy.fft.ifft(chunk_lpfed)
+            chunk_taken = chunk_iffted[:num_take] + temp_buffer[:num_take]
+            temp_buffer[:num_take] = 0
+            np.roll(temp_buffer, -1 * num_take)
+            temp_buffer[:num_buffer_take] += chunk_iffted[num_take:]
+            if chunk_size < DOWNSAMPLE_FACTOR:
+                frame_output[-1 * chunk_size] = np.real(chunk_taken[chunk_size])
             else:
-                output[index * size:(index + 1) * size] = np.real(segment_downsampled)
-        pass
-    # nfft = next_power_of_2(len(left) * UPSAMPLE_FACTOR)
-    # left_upsampled = upsample(left, UPSAMPLE_FACTOR)
-    # left_ffted = scipy.fft.fft(left_upsampled, nfft)
-    # lpf_ffted = scipy.fft.fft(lpf_coefficients, nfft)
-    # result = left_ffted * lpf_ffted
-    # frame_output = scipy.fft.ifft(result)
-    # left_downsampled = downsample(frame_output, DOWNSAMPLE_FACTOR)
+                frame_output[j * DOWNSAMPLE_FACTOR:(j + 1) * DOWNSAMPLE_FACTOR] = np.real(chunk_taken[:DOWNSAMPLE_FACTOR])
+            # frame_output[j * DOWNSAMPLE_FACTOR:(j + 1) * DOWNSAMPLE_FACTOR] = np.real(chunk_taken[:DOWNSAMPLE_FACTOR])
+        downsampled = downsample(frame_output, DOWNSAMPLE_FACTOR)
+        downsampled_size = downsampled.shape[0]
+        if downsampled_size < UPSAMPLE_FACTOR:
+            output[-1 * downsampled_size:] = downsampled
+        else:
+            output[i * UPSAMPLE_FACTOR:(i + 1) * UPSAMPLE_FACTOR] = downsampled
     return output
 
 
