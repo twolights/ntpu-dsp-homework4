@@ -58,12 +58,12 @@ def resample_fft(data):
     # nfft = next_power_of_2(DOWNSAMPLE_FACTOR * UPSAMPLE_FACTOR)
     lpf_coefficients = scipy.signal.firwin(ORDER, CUTOFF, window='hamming', fs=FS * UPSAMPLE_FACTOR)
     lpf_padded = np.pad(lpf_coefficients, (0, nfft - len(lpf_coefficients)))
-    lpf_ffted = scipy.fft.fft(lpf_padded)
+    lpf_ffted = scipy.fft.fft(lpf_padded) * UPSAMPLE_FACTOR
     # lpf_padded = np.pad(lpf_coefficients, (0, N - len(lpf_coefficients)))
 
     num_take = DOWNSAMPLE_FACTOR + ORDER - 1
-    num_buffer_take = nfft - num_take
-    temp_buffer = np.zeros(nfft, dtype=np.complex64)
+    temp_buffer_size = DOWNSAMPLE_FACTOR + ORDER - 1 - DOWNSAMPLE_FACTOR
+    temp_buffer = np.zeros(temp_buffer_size, dtype=np.complex64)
     output_size = math.floor(DOWNSAMPLE_FACTOR / UPSAMPLE_FACTOR) * UPSAMPLE_FACTOR
     size = int(output_size / UPSAMPLE_FACTOR)
 
@@ -77,13 +77,12 @@ def resample_fft(data):
             taken = frame_upsampled[j * DOWNSAMPLE_FACTOR:(j + 1) * DOWNSAMPLE_FACTOR]
             chunk_size = min(DOWNSAMPLE_FACTOR, taken.shape[0])
             chunk[:chunk_size] = taken
-            chunk_ffted = scipy.fft.fft(chunk)
+            chunk_ffted = scipy.fft.fft(chunk, nfft)
             chunk_lpfed = chunk_ffted * lpf_ffted
-            chunk_iffted = scipy.fft.ifft(chunk_lpfed)
-            chunk_taken = chunk_iffted[:num_take] + temp_buffer[:num_take]
-            temp_buffer[:num_take] = 0
-            np.roll(temp_buffer, -1 * num_take)
-            temp_buffer[:num_buffer_take] += chunk_iffted[num_take:]
+            chunk_iffted = scipy.fft.ifft(chunk_lpfed, nfft)
+            chunk_taken = chunk_iffted[:num_take]  # + temp_buffer[:num_take]
+            chunk_taken[:temp_buffer_size] += temp_buffer
+            temp_buffer[:temp_buffer_size] = chunk_taken[chunk_size:chunk_size + temp_buffer_size]
             if chunk_size < DOWNSAMPLE_FACTOR:
                 frame_output[-1 * chunk_size] = np.real(chunk_taken[chunk_size])
             else:
