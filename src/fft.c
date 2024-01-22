@@ -5,11 +5,14 @@
 #include <stdlib.h>
 #include <math.h>
 #include <complex.h>
+#include <string.h>
 #include "fft.h"
 
 
 complex double* create_fft_buffer(int n) {
-    return (complex double*)malloc(sizeof(complex double) * n);
+    complex double* result =  (complex double*)malloc(sizeof(complex double) * n);
+    memset(result, 0, sizeof(complex double) * n);
+    return result;
 }
 
 void fill_fft_buffer_int16(complex double* buffer, const int16_t* data, int size) {

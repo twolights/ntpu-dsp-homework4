@@ -141,12 +141,13 @@ void perform_fft_filter(WAV_FILE* wav_file, double source_Fs,
 
     WAV_FILE* output_file = wav_open_write(output_filename, header);
 
-    fill_fft_buffer_double(lpf_ffted, lpf, lpf_order);
     for(i = 0; i < lpf_order; i++) {
         lpf[i] = lpf[i] * upsample_factor;
     }
+    fill_fft_buffer_double(lpf_ffted, lpf, lpf_order);
     fft(lpf_ffted, FFT_SIZE);
 
+    fseek(wav_file->fp, wav_file->header.DATALen + sizeof(int16_t) * 4, SEEK_CUR);
     while(!feof(wav_file->fp)) {
         count++;
         wav_read(wav_file, input_buffer, num_to_read);
@@ -191,6 +192,11 @@ void resample_wave_file(WAV_FILE* wav_file,
     double* lpf = create_lowpass_filter(target_Fs / 2, lpf_Fs, order);
     size_t num_samples = wav_get_num_samples(wav_file);
     WAV_HEADER output_header = wav_file->header;
+    FILE* fp = fopen("lpf.txt", "w");
+    for(int i = 0; i < order; i++) {
+        fprintf(fp, "%f\n", lpf[i]);
+    }
+    fclose(fp);
     prepare_output_header(target_Fs, num_channels, num_samples, &output_header);
     perform_fft_filter(wav_file, source_Fs,
                        output_header, output_filename,

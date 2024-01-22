@@ -1,6 +1,7 @@
 import os
 import math
 
+import csv
 import numpy as np
 import scipy
 from scipy.signal import firwin, lfilter
@@ -49,6 +50,12 @@ def next_power_of_2(x):
     return 1 if x == 0 else 2**math.ceil(math.log2(x))
 
 
+def get_lpf_coefficients():
+    with open('lpf.txt', 'r') as f:
+        reader = csv.reader(f)
+        return [float(row[0]) for row in reader]
+    
+        
 def resample_fft(data):
     left, right = data[:, 0], data[:, 1]
     output = np.zeros(int(len(left) * UPSAMPLE_FACTOR / DOWNSAMPLE_FACTOR))
@@ -57,6 +64,8 @@ def resample_fft(data):
     nfft = 2048
     # nfft = next_power_of_2(DOWNSAMPLE_FACTOR * UPSAMPLE_FACTOR)
     lpf_coefficients = scipy.signal.firwin(ORDER, CUTOFF, window='hamming', fs=FS * UPSAMPLE_FACTOR)
+    # lpf_coefficients = scipy.signal.firwin(ORDER, CUTOFF, window='hamming', fs=FS * UPSAMPLE_FACTOR)
+    lpf_coefficients = get_lpf_coefficients()
     lpf_padded = np.pad(lpf_coefficients, (0, nfft - len(lpf_coefficients)))
     lpf_ffted = scipy.fft.fft(lpf_padded) * UPSAMPLE_FACTOR
     # lpf_padded = np.pad(lpf_coefficients, (0, N - len(lpf_coefficients)))
