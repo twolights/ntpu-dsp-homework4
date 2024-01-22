@@ -110,10 +110,12 @@ void perform_chunked_fft(double* frame_buffer, int frame_size,
         }
 
         for(j = 0; j < num_to_take; j++) {
-            output_buffer[start + j] += creal(chunk[j]);
+            output_buffer[start + j] = creal(chunk[j]);
         }
+        int m = 0;
     }
     downsample(output_buffer, upsampled_chuck_size, downsample_factor, downsampled);
+    int k = 0;
 }
 
 void perform_fft_filter(WAV_FILE* wav_file, double source_Fs,
@@ -148,7 +150,7 @@ void perform_fft_filter(WAV_FILE* wav_file, double source_Fs,
     fill_fft_buffer_double(lpf_ffted, lpf, lpf_order);
     fft(lpf_ffted, FFT_SIZE);
 
-    fseek(wav_file->fp, wav_file->header.DATALen + sizeof(int16_t) * 4, SEEK_CUR);
+    // fseek(wav_file->fp, wav_file->header.DATALen + sizeof(int16_t) * 4, SEEK_CUR);
     while(!feof(wav_file->fp)) {
         count++;
         wav_read(wav_file, input_buffer, num_to_read);
@@ -165,6 +167,7 @@ void perform_fft_filter(WAV_FILE* wav_file, double source_Fs,
                                 previous_buffers[i], previous_buffer_size,
                                 FFT_SIZE,
                                 output_buffer);
+            int j = 0;
         }
         wav_write(output_file, downsampled_output, downsampled_chunk_size);
         printf("Iteration %d complete\n", count);
