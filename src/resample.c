@@ -14,7 +14,7 @@
 void upsample(const double* source, size_t len, int factor, double* result) {
     memset(result, 0, sizeof(double) * len * factor);
     for(int i = 0; i < len; i++) {
-        result[i * factor] = source[i] * factor;
+        result[i * factor] = source[i]; // * factor;
     }
 }
 
@@ -92,6 +92,7 @@ void perform_chunked_fft(double* frame_buffer, int frame_size,
 
     upsample(frame_buffer, frame_size, upsample_factor, upsampled);
     for(i = 0; i < upsample_factor; i++) {
+        memset(chunk, 0, sizeof(complex double) * n_fft);
         fill_fft_buffer_double(chunk, &upsampled[i * downsample_factor], downsample_factor);
         fft(chunk, n_fft);
         for(j = 0; j < n_fft; j++) {
